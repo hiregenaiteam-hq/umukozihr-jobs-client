@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: umukozihr-jobs-client
+    runtime: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_API_URL
+        value: https://umukozihr-jobs-api.onrender.com
+      - key: NEXT_PUBLIC_TAILOR_API_URL
+        value: https://umukozihr-tailor-api.onrender.com
+      - key: NODE_ENV
+        value: production
