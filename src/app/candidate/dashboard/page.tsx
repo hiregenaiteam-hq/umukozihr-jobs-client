@@ -13,6 +13,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Loader2,
+  Sparkles,
+  Search,
+  Bookmark,
+  Target,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -44,14 +49,18 @@ export default function CandidateDashboard() {
   });
   const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const { user } = useAuthStore();
   const supabase = createClient();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user?.id) return;
 
-      // Get candidate profile
       const { data: candidate } = await supabase
         .from("candidates")
         .select("id, profile_completeness")
@@ -63,19 +72,16 @@ export default function CandidateDashboard() {
         return;
       }
 
-      // Get applications count
       const { count: applicationsCount } = await supabase
         .from("applications")
         .select("*", { count: "exact", head: true })
         .eq("candidate_id", candidate.id);
 
-      // Get saved jobs count
       const { count: savedJobsCount } = await supabase
         .from("saved_jobs")
         .select("*", { count: "exact", head: true })
         .eq("candidate_id", candidate.id);
 
-      // Get recent applications
       const { data: applications } = await supabase
         .from("applications")
         .select(`
@@ -108,12 +114,12 @@ export default function CandidateDashboard() {
       case "interviewed":
       case "offered":
       case "hired":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-400" />;
       case "rejected":
       case "withdrawn":
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-red-400" />;
       default:
-        return <Clock className="h-5 w-5 text-yellow-500" />;
+        return <Clock className="h-5 w-5 text-yellow-400" />;
     }
   };
 
@@ -121,150 +127,162 @@ export default function CandidateDashboard() {
     return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
   };
 
+  const getStatusClasses = (status: string) => {
+    switch (status) {
+      case "shortlisted":
+      case "interviewed":
+      case "offered":
+      case "hired":
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "rejected":
+      case "withdrawn":
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="neu-raised w-16 h-16 rounded-2xl flex items-center justify-center animate-pulse-glow">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+          </div>
+          <span className="text-gray-400">Loading dashboard...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {user?.first_name || "there"}!
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Here&apos;s what&apos;s happening with your job search.
-        </p>
+      <div className="glass-card p-8">
+        <div className="flex items-center gap-4">
+          <div className="neu-raised w-16 h-16 rounded-2xl flex items-center justify-center">
+            <Sparkles className="h-8 w-8 text-purple-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              Welcome back, <span className="text-gradient">{user?.first_name || "there"}!</span>
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Here&apos;s what&apos;s happening with your job search.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <FileText className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Applications</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.applications_count}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <Briefcase className="h-6 w-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Saved Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.saved_jobs_count}
-              </p>
+        {[
+          { icon: FileText, label: "Applications", value: stats.applications_count, color: "purple" },
+          { icon: Bookmark, label: "Saved Jobs", value: stats.saved_jobs_count, color: "blue" },
+          { icon: Eye, label: "Profile Views", value: stats.profile_views, color: "cyan" },
+          { icon: Target, label: "Profile Strength", value: `${stats.profile_completeness}%`, color: "green" },
+        ].map((stat, index) => (
+          <div 
+            key={index} 
+            className="glass-card p-6 group"
+            style={{ animationDelay: `${0.1 * index}s` }}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`neu-raised w-14 h-14 rounded-xl flex items-center justify-center group-hover:animate-pulse-glow transition-all`}>
+                <stat.icon className={`h-7 w-7 text-${stat.color}-400`} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">
+                  {stat.value}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <Eye className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Profile Views</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.profile_views}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Profile Strength</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.profile_completeness}%
-              </p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Profile Completeness Alert */}
       {stats.profile_completeness < 80 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+        <div className="glass-card p-6 border-yellow-500/30 bg-yellow-500/5">
           <div className="flex items-start gap-4">
-            <div className="bg-amber-100 p-2 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-amber-600" />
+            <div className="neu-raised w-12 h-12 rounded-xl flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-yellow-400" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-800">
+              <h3 className="font-semibold text-yellow-400">
                 Complete your profile
               </h3>
-              <p className="text-amber-700 text-sm mt-1">
+              <p className="text-gray-400 text-sm mt-1">
                 A complete profile helps employers find you and improves your match score for job applications.
               </p>
               <Link
                 href="/candidate/profile"
-                className="inline-flex items-center gap-1 text-amber-800 font-medium mt-2 hover:underline"
+                className="inline-flex items-center gap-2 text-yellow-400 font-medium mt-3 hover:text-yellow-300 transition-colors"
               >
                 Update Profile <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-gradient">{stats.profile_completeness}%</div>
+              <div className="text-xs text-gray-500 mt-1">Complete</div>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-4 h-2 bg-white/5 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-500"
+              style={{ width: `${stats.profile_completeness}%` }}
+            />
           </div>
         </div>
       )}
 
       {/* Recent Applications */}
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="p-6 border-b border-gray-200">
+      <div className="glass-card overflow-hidden">
+        <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-3">
+              <FileText className="h-5 w-5 text-purple-400" />
               Recent Applications
             </h2>
             <Link
               href="/candidate/applications"
-              className="text-indigo-600 text-sm font-medium hover:text-indigo-700"
+              className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors flex items-center gap-1"
             >
-              View all
+              View all <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
         {recentApplications.length === 0 ? (
-          <div className="p-6 text-center">
-            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No applications yet</p>
+          <div className="p-12 text-center">
+            <div className="neu-raised w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-8 w-8 text-gray-500" />
+            </div>
+            <p className="text-gray-400 mb-4">No applications yet</p>
             <Link
               href="/candidate/jobs"
-              className="inline-flex items-center gap-2 mt-4 text-indigo-600 font-medium hover:text-indigo-700"
+              className="btn-primary inline-flex items-center gap-2"
             >
-              Browse Jobs <ArrowRight className="h-4 w-4" />
+              <Search className="h-4 w-4" />
+              Browse Jobs
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {recentApplications.map((application) => (
+          <div className="divide-y divide-white/5">
+            {recentApplications.map((application, index) => (
               <div
                 key={application.id}
-                className="p-6 flex items-center justify-between hover:bg-gray-50 transition"
+                className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors group"
+                style={{ animationDelay: `${0.05 * index}s` }}
               >
                 <div className="flex items-center gap-4">
                   {getStatusIcon(application.status)}
                   <div>
                     <Link
                       href={`/jobs/${application.job.slug}`}
-                      className="font-medium text-gray-900 hover:text-indigo-600"
+                      className="font-medium text-white hover:text-purple-400 transition-colors"
                     >
                       {application.job.title}
                     </Link>
@@ -275,21 +293,11 @@ export default function CandidateDashboard() {
                 </div>
                 <div className="text-right">
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      application.status === "shortlisted" ||
-                      application.status === "interviewed" ||
-                      application.status === "offered" ||
-                      application.status === "hired"
-                        ? "bg-green-100 text-green-700"
-                        : application.status === "rejected" ||
-                          application.status === "withdrawn"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
+                    className={`inline-block px-3 py-1.5 rounded-lg text-xs font-medium border ${getStatusClasses(application.status)}`}
                   >
                     {getStatusLabel(application.status)}
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     {new Date(application.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -303,40 +311,58 @@ export default function CandidateDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
           href="/candidate/jobs"
-          className="bg-indigo-600 text-white p-6 rounded-xl hover:bg-indigo-700 transition group"
+          className="glass-card p-6 group relative overflow-hidden"
         >
-          <Briefcase className="h-8 w-8 mb-4" />
-          <h3 className="text-lg font-semibold">Find Jobs</h3>
-          <p className="text-indigo-200 text-sm mt-1">
+          {/* Gradient top border */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500" />
+          
+          <div className="neu-raised w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:animate-pulse-glow">
+            <Search className="h-7 w-7 text-purple-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Find Jobs</h3>
+          <p className="text-gray-400 text-sm mb-4">
             Browse latest opportunities
           </p>
-          <ArrowRight className="h-5 w-5 mt-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-purple-400 font-medium group-hover:text-purple-300 transition-colors">
+            <span>Explore</span>
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </Link>
 
         <Link
           href="/candidate/profile"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition group"
+          className="glass-card p-6 group relative overflow-hidden"
         >
-          <TrendingUp className="h-8 w-8 text-indigo-600 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <div className="neu-raised w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:animate-pulse-glow">
+            <TrendingUp className="h-7 w-7 text-blue-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">
             Improve Profile
           </h3>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-400 text-sm mb-4">
             Boost your visibility to employers
           </p>
-          <ArrowRight className="h-5 w-5 mt-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-blue-400 font-medium group-hover:text-blue-300 transition-colors">
+            <span>Update</span>
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </Link>
 
         <Link
           href="/candidate/saved"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition group"
+          className="glass-card p-6 group relative overflow-hidden"
         >
-          <Briefcase className="h-8 w-8 text-purple-600 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900">Saved Jobs</h3>
-          <p className="text-gray-500 text-sm mt-1">
+          <div className="neu-raised w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:animate-pulse-glow">
+            <Bookmark className="h-7 w-7 text-cyan-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Saved Jobs</h3>
+          <p className="text-gray-400 text-sm mb-4">
             Review your bookmarked positions
           </p>
-          <ArrowRight className="h-5 w-5 mt-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 text-cyan-400 font-medium group-hover:text-cyan-300 transition-colors">
+            <span>View saved</span>
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </Link>
       </div>
     </div>

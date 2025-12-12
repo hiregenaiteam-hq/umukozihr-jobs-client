@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store";
 import {
@@ -16,6 +17,7 @@ import {
   Menu,
   X,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 
 const navigation = [
@@ -81,34 +83,40 @@ export default function CandidateLayout({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="neu-raised w-16 h-16 rounded-2xl flex items-center justify-center animate-pulse-glow">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+          </div>
+          <span className="text-gray-400">Loading...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 glass-heavy border-r border-white/10 transform transition-transform lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <Link href="/" className="text-xl font-bold text-indigo-600">
-            UmukoziHR Jobs
+        <div className="flex items-center justify-between h-20 px-6 border-b border-white/10">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/umukozi-logo.png" alt="UmukoziHR" width={36} height={36} className="rounded-lg" />
+            <span className="text-lg font-bold text-gradient">UmukoziHR</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-gray-400 hover:text-white transition-colors"
           >
             <X className="h-6 w-6" />
           </button>
@@ -121,36 +129,41 @@ export default function CandidateLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "glass border border-purple-500/30 text-white font-medium"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={`h-5 w-5 ${isActive ? 'text-purple-400' : ''}`} />
                 {item.name}
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-purple-400" />
+                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 px-4 py-2 mb-2">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-indigo-700 font-semibold">
-                {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.first_name} {user?.last_name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+          <div className="glass p-3 rounded-xl mb-3">
+            <div className="flex items-center gap-3">
+              <div className="neu-raised w-10 h-10 rounded-xl flex items-center justify-center">
+                <span className="text-purple-400 font-semibold">
+                  {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              </div>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition"
+            className="flex items-center gap-3 w-full px-4 py-3 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
           >
             <LogOut className="h-5 w-5" />
             Sign Out
@@ -159,19 +172,20 @@ export default function CandidateLayout({
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 lg:hidden">
+        <header className="sticky top-0 z-30 glass-heavy border-b border-white/10 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-400 hover:text-white transition-colors"
             >
               <Menu className="h-6 w-6" />
             </button>
-            <span className="text-lg font-semibold text-indigo-600">
-              UmukoziHR Jobs
-            </span>
+            <div className="flex items-center gap-2">
+              <Image src="/umukozi-logo.png" alt="UmukoziHR" width={28} height={28} className="rounded-lg" />
+              <span className="text-lg font-semibold text-gradient">UmukoziHR</span>
+            </div>
             <div className="w-6" />
           </div>
         </header>
